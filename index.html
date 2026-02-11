@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Airport Master: Multi-Mode</title>
+    <title>Airport Master: Fast Mode</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -143,9 +143,15 @@
             font-weight: bold;
             cursor: pointer;
             margin-top: 20px;
+            /* Add transition for focus to make it obvious */
+            transition: background-color 0.2s, box-shadow 0.2s;
         }
 
-        .action-btn:hover { background-color: var(--secondary); }
+        .action-btn:hover, .action-btn:focus { 
+            background-color: var(--secondary); 
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.3); /* Ring for keyboard focus */
+        }
         
         .home-btn {
             background: #64748b;
@@ -377,13 +383,11 @@
         else sourceData = [...spanishAirports, ...internationalAirports];
 
         // Shuffle and fill queue
-        // We ensure we fill exactly 'totalQuestions' (20), repeating if list is too small
         gameQueue = [];
         let tempPool = [...sourceData].sort(() => Math.random() - 0.5);
         
         for(let i=0; i<totalQuestions; i++) {
             if(tempPool.length === 0) {
-                // Refill and reshuffle if we run out
                 tempPool = [...sourceData].sort(() => Math.random() - 0.5);
             }
             gameQueue.push(tempPool.pop());
@@ -433,12 +437,9 @@
             hintKey = 'name';
             activeFields = ['iata', 'icao'];
         } else if (currentMode === 'city') {
-            // Randomly show IATA or ICAO as hint
             hintKey = Math.random() > 0.5 ? 'iata' : 'icao';
             activeFields = ['city'];
         } else {
-            // Classic: Pick one random attribute as hint, rest are inputs
-            // We use Math.random() in loadQuestion ensures RANDOMNESS every specific question
             const allKeys = ['name', 'city', 'iata', 'icao'];
             hintKey = allKeys[Math.floor(Math.random() * allKeys.length)];
             activeFields = allKeys.filter(k => k !== hintKey);
@@ -475,10 +476,26 @@
             `;
         });
         
-        // Focus first input
+        // --- KEYBOARD NAVIGATION LOGIC ---
+        const inputs = document.querySelectorAll('#inputs-area input');
+        inputs.forEach((input, index) => {
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (index < inputs.length - 1) {
+                        // Move to next input
+                        inputs[index + 1].focus();
+                    } else {
+                        // Submit if last input
+                        checkAnswer();
+                    }
+                }
+            });
+        });
+
+        // Focus first input automatically
         setTimeout(() => {
-            const firstInput = document.querySelector('input');
-            if(firstInput) firstInput.focus();
+            if(inputs[0]) inputs[0].focus();
         }, 100);
     }
 
@@ -491,25 +508,19 @@
             const userVal = inputEl.value.trim().toLowerCase();
             const correctVal = currentAirport[field].toLowerCase();
 
-            // Logic to allow partial match for long airport names, but exact for codes
             let isFieldCorrect = false;
             
-            // Normalize strings for comparison (remove accents if strictly needed, but here simple lowercase)
-            // Advanced normalization:
+            // Normalize strings
             const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
             if (field === 'name') {
-                // If user types "Hartsfield" or "Barajas", accept it if it's significant length
-                // Using normalized comparison to handle accents better
                 const normUser = normalize(userVal);
                 const normCorrect = normalize(correctVal);
-                
                 isFieldCorrect = (normCorrect.includes(normUser) && userVal.length > 3) || normCorrect === normUser;
             } else {
                 isFieldCorrect = normalize(userVal) === normalize(correctVal);
             }
 
-            // UI Feedback
             inputEl.classList.remove('correct', 'incorrect');
             if (isFieldCorrect) {
                 inputEl.classList.add('correct');
@@ -529,6 +540,9 @@
             currentIndex++;
             loadQuestion();
         };
+        
+        // Focus the button so hitting "Enter" again triggers the next question
+        btn.focus();
     }
 
     function endGame() {
