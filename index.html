@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airport Master: Multi-Mode</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #1e40af;
+            --success: #16a34a;
+            --error: #dc2626;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 30px;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        h1, h2, h3 { text-align: center; color: var(--secondary); margin-top: 0; }
+        
+        /* Menu Buttons */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .mode-btn {
+            background: white;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-btn:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
+        }
+
+        /* Region Selection Buttons */
+        .region-btn {
+            background: #f8fafc;
+            border: 2px solid #cbd5e1;
+            color: var(--text);
+        }
+        .region-btn:hover {
+            background: var(--secondary);
+            border-color: var(--secondary);
+            color: white;
+        }
+
+        /* Game UI */
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px;
+        }
+
+        .hint-box {
+            background: #eff6ff;
+            border-left: 5px solid var(--primary);
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+        }
+
+        .hint-label { font-size: 0.85em; text-transform: uppercase; letter-spacing: 1px; color: #64748b; font-weight: bold; }
+        .hint-text { font-size: 1.5em; font-weight: bold; color: var(--secondary); margin: 5px 0 0 0; }
+
+        .input-row {
+            margin-bottom: 15px;
+        }
+
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9em; }
+        
+        .input-wrapper { position: relative; }
+
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+            box-sizing: border-box; 
+        }
+
+        input:focus { outline: none; border-color: var(--primary); }
+        
+        /* Validation Styles */
+        input.correct { border-color: var(--success); background-color: #f0fdf4; }
+        input.incorrect { border-color: var(--error); background-color: #fef2f2; }
+        
+        .feedback-msg {
+            font-size: 0.85em;
+            margin-top: 5px;
+            display: none; 
+        }
+        .correct + .feedback-msg { display: block; color: var(--success); }
+        .incorrect + .feedback-msg { display: block; color: var(--error); }
+
+        .action-btn {
+            width: 100%;
+            padding: 15px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .action-btn:hover { background-color: var(--secondary); }
+        
+        .home-btn {
+            background: #64748b;
+            margin-top: 10px;
+        }
+
+        /* Study Table */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background-color: #f8fafc; color: var(--secondary); }
+        tr:hover { background-color: #f1f5f9; }
+        
+        .table-section-header {
+            background-color: var(--secondary);
+            color: white;
+            padding: 10px;
+            margin-top: 20px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        /* Helpers */
+        .hidden { display: none; }
+        
+        .footer-copyright {
+            margin-top: auto;
+            font-size: 0.7em;
+            color: #94a3b8;
+            text-align: center;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="menu-screen">
+    <h1>✈️ Airport Master</h1>
+    <p style="text-align:center; color:#64748b;">Select a mode to begin training</p>
+    
+    <div class="menu-grid">
+        <button class="mode-btn" onclick="selectRegion('classic')">
+            🎲 Classic Mode<br>
+            <span style="font-size:0.8em; font-weight:normal;">Random missing info</span>
+        </button>
+        <button class="mode-btn" onclick="selectRegion('codes')">
+            🔠 Code Master<br>
+            <span style="font-size:0.8em; font-weight:normal;">Given Name -> Guess Codes</span>
+        </button>
+        <button class="mode-btn" onclick="selectRegion('city')">
+            🌍 City Finder<br>
+            <span style="font-size:0.8em; font-weight:normal;">Given Code -> Guess City</span>
+        </button>
+        <button class="mode-btn" onclick="showTable()">
+            📚 Study Table<br>
+            <span style="font-size:0.8em; font-weight:normal;">View all data</span>
+        </button>
+    </div>
+</div>
+
+<div class="container hidden" id="region-screen">
+    <h1>🌍 Select Region</h1>
+    <p style="text-align:center; color:#64748b;">Which airports do you want to practice?</p>
+    
+    <div class="menu-grid">
+        <button class="mode-btn region-btn" onclick="startGame('spanish')">
+            🇪🇸 Spanish<br>
+            <span style="font-size:0.8em; font-weight:normal;">Only Spanish Airports</span>
+        </button>
+        <button class="mode-btn region-btn" onclick="startGame('international')">
+            🌐 International<br>
+            <span style="font-size:0.8em; font-weight:normal;">Only International</span>
+        </button>
+        <button class="mode-btn region-btn" onclick="startGame('mix')">
+            🔀 Mix All<br>
+            <span style="font-size:0.8em; font-weight:normal;">Combine Both</span>
+        </button>
+    </div>
+    <button class="action-btn home-btn" onclick="goHome()">Back</button>
+</div>
+
+<div class="container hidden" id="game-screen">
+    <div class="game-header">
+        <span id="mode-title" style="font-weight:bold; color:var(--primary);">Mode</span>
+        <span id="progress">1 / 20</span>
+    </div>
+
+    <div id="hint-area" class="hint-box">
+        </div>
+
+    <div id="inputs-area">
+        </div>
+
+    <button id="main-btn" class="action-btn" onclick="checkAnswer()">Check Answers</button>
+    <button class="action-btn home-btn" onclick="goHome()">Exit to Menu</button>
+</div>
+
+<div class="container hidden" id="summary-screen">
+    <h1>🏁 Results</h1>
+    <h2 id="final-score"></h2>
+    <div id="results-list" style="margin-top:20px; max-height:400px; overflow-y:auto;"></div>
+    <button class="action-btn" onclick="goHome()">Back to Menu</button>
+</div>
+
+<div class="container hidden" id="table-screen">
+    <div class="game-header">
+        <h2>📚 Reference Table</h2>
+        <button style="padding:5px 10px; cursor:pointer;" onclick="goHome()">Close</button>
+    </div>
+    <div style="overflow-x:auto;" id="table-content">
+        </div>
+</div>
+
+<div class="footer-copyright">
+    &copy; Alexander Dost Belda
+</div>
+
+<script>
+    // --- DATA SETS ---
+    const internationalAirports = [
+        { name: "Hartsfield–Jackson Atlanta International", city: "Atlanta", iata: "ATL", icao: "KATL" },
+        { name: "Dubai International Airport", city: "Dubai", iata: "DXB", icao: "OMDB" },
+        { name: "Tokyo Haneda Airport", city: "Tokyo", iata: "HND", icao: "RJTT" },
+        { name: "Dallas Fort Worth International", city: "Dallas", iata: "DFW", icao: "KDFW" },
+        { name: "Shanghai Pudong International", city: "Shanghai", iata: "PVG", icao: "ZSPD" },
+        { name: "Heathrow Airport", city: "London", iata: "LHR", icao: "EGLL" },
+        { name: "Istanbul Airport", city: "Istanbul", iata: "IST", icao: "LTFM" },
+        { name: "Guangzhou Baiyun International", city: "Guangzhou", iata: "CAN", icao: "ZGGG" },
+        { name: "Denver International Airport", city: "Denver", iata: "DEN", icao: "KDEN" },
+        { name: "O'Hare International Airport", city: "Chicago", iata: "ORD", icao: "KORD" },
+        { name: "Indira Gandhi International", city: "Delhi", iata: "DEL", icao: "VIDP" },
+        { name: "Seoul Incheon International", city: "Incheon", iata: "ICN", icao: "RKSI" },
+        { name: "Los Angeles International", city: "Los Angeles", iata: "LAX", icao: "KLAX" },
+        { name: "Charles de Gaulle Airport", city: "Paris", iata: "CDG", icao: "LFPG" },
+        { name: "Beijing Capital International", city: "Beijing", iata: "PEK", icao: "ZBAA" },
+        { name: "Singapore Changi Airport", city: "Singapore", iata: "SIN", icao: "WSSS" },
+        { name: "Amsterdam Airport Schiphol", city: "Amsterdam", iata: "AMS", icao: "EHAM" },
+        { name: "Shenzhen Bao'an International", city: "Shenzhen", iata: "SZX", icao: "ZGSZ" },
+        { name: "Kuala Lumpur International", city: "Kuala Lumpur", iata: "KUL", icao: "WMKK" }
+    ];
+
+    const spanishAirports = [
+        { name: "Adolfo Suárez Madrid–Barajas", city: "Madrid", iata: "MAD", icao: "LEMD" },
+        { name: "Alicante–Elche Miguel Hernández", city: "Alicante", iata: "ALC", icao: "LEAL" },
+        { name: "Bilbao Airport", city: "Bilbao", iata: "BIO", icao: "LEBB" },
+        { name: "César Manrique–Lanzarote", city: "Lanzarote", iata: "ACE", icao: "GCRR" },
+        { name: "El Hierro Airport", city: "El Hierro", iata: "VDE", icao: "GCHI" },
+        { name: "Fuerteventura Airport", city: "Fuerteventura", iata: "FUE", icao: "GCFV" },
+        { name: "Gran Canaria Airport", city: "Gran Canaria", iata: "LPA", icao: "GCLP" },
+        { name: "Ibiza Airport", city: "Ibiza", iata: "IBZ", icao: "LEIB" },
+        { name: "Jerez Airport", city: "Jerez", iata: "XRY", icao: "LEJR" },
+        { name: "Josep Tarradellas Barcelona–El Prat", city: "Barcelona", iata: "BCN", icao: "LEBL" },
+        { name: "La Gomera Airport", city: "La Gomera", iata: "GMZ", icao: "GCGM" },
+        { name: "La Palma Airport", city: "La Palma", iata: "SPC", icao: "GCLA" },
+        { name: "Menorca Airport", city: "Menorca", iata: "MAH", icao: "LEMH" },
+        { name: "Málaga–Costa del Sol", city: "Málaga", iata: "AGP", icao: "LEMG" },
+        { name: "Palma de Mallorca", city: "Palma", iata: "PMI", icao: "LEPA" },
+        { name: "Seve Ballesteros–Santander", city: "Santander", iata: "SDR", icao: "LEXJ" },
+        { name: "Sevilla Airport", city: "Sevilla", iata: "SVQ", icao: "LEZL" },
+        { name: "Tenerife Norte–Ciudad de La Laguna", city: "Tenerife Norte", iata: "TFN", icao: "GCXO" },
+        { name: "Tenerife Sur", city: "Tenerife Sur", iata: "TFS", icao: "GCTS" },
+        { name: "Valencia Airport", city: "Valencia", iata: "VLC", icao: "LEVC" }
+    ];
+
+    let currentMode = '';
+    let selectedModeType = ''; // 'classic', 'codes', 'city'
+    let gameQueue = [];
+    let currentIndex = 0;
+    let score = 0;
+    let currentAirport = null;
+    let activeFields = []; // Fields user needs to type
+    let totalQuestions = 20;
+
+    function goHome() {
+        document.querySelectorAll('.container').forEach(d => d.classList.add('hidden'));
+        document.getElementById('menu-screen').classList.remove('hidden');
+    }
+
+    // --- TABLE MODE ---
+    function createTableHTML(title, data) {
+        let html = `<div class="table-section-header">${title}</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Airport Name</th>
+                    <th>City</th>
+                    <th>IATA</th>
+                    <th>ICAO</th>
+                </tr>
+            </thead>
+            <tbody>`;
+        
+        data.forEach(a => {
+            html += `<tr>
+                <td>${a.name}</td>
+                <td>${a.city}</td>
+                <td><strong>${a.iata}</strong></td>
+                <td>${a.icao}</td>
+            </tr>`;
+        });
+        
+        html += `</tbody></table>`;
+        return html;
+    }
+
+    function showTable() {
+        document.querySelectorAll('.container').forEach(d => d.classList.add('hidden'));
+        document.getElementById('table-screen').classList.remove('hidden');
+        
+        const content = document.getElementById('table-content');
+        content.innerHTML = createTableHTML("🇪🇸 Spanish Airports", spanishAirports);
+        content.innerHTML += createTableHTML("🌐 International Airports", internationalAirports);
+    }
+
+    // --- GAME LOGIC ---
+    function selectRegion(mode) {
+        selectedModeType = mode;
+        document.getElementById('menu-screen').classList.add('hidden');
+        document.getElementById('region-screen').classList.remove('hidden');
+    }
+
+    function startGame(region) {
+        currentMode = selectedModeType;
+        
+        // Build Data Set
+        let sourceData = [];
+        if (region === 'spanish') sourceData = [...spanishAirports];
+        else if (region === 'international') sourceData = [...internationalAirports];
+        else sourceData = [...spanishAirports, ...internationalAirports];
+
+        // Shuffle and fill queue
+        // We ensure we fill exactly 'totalQuestions' (20), repeating if list is too small
+        gameQueue = [];
+        let tempPool = [...sourceData].sort(() => Math.random() - 0.5);
+        
+        for(let i=0; i<totalQuestions; i++) {
+            if(tempPool.length === 0) {
+                // Refill and reshuffle if we run out
+                tempPool = [...sourceData].sort(() => Math.random() - 0.5);
+            }
+            gameQueue.push(tempPool.pop());
+        }
+
+        currentIndex = 0;
+        score = 0;
+        
+        document.getElementById('region-screen').classList.add('hidden');
+        document.getElementById('game-screen').classList.remove('hidden');
+        
+        let title = "";
+        if(selectedModeType === 'classic') title = "Classic Mode";
+        if(selectedModeType === 'codes') title = "Code Master";
+        if(selectedModeType === 'city') title = "City Finder";
+        
+        let regionText = region === 'spanish' ? " (Spanish)" : region === 'international' ? " (Intl)" : " (Mix)";
+        document.getElementById('mode-title').innerText = title + regionText;
+
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        if (currentIndex >= gameQueue.length) {
+            endGame();
+            return;
+        }
+
+        currentAirport = gameQueue[currentIndex];
+        document.getElementById('progress').innerText = `${currentIndex + 1} / ${gameQueue.length}`;
+        
+        const hintArea = document.getElementById('hint-area');
+        const inputArea = document.getElementById('inputs-area');
+        const btn = document.getElementById('main-btn');
+        
+        hintArea.innerHTML = '';
+        inputArea.innerHTML = '';
+        btn.innerText = "Check Answers";
+        btn.onclick = checkAnswer;
+        btn.classList.remove('home-btn');
+
+        // DETERMINE HINT vs INPUTS based on MODE
+        let hintKey = '';
+        activeFields = []; 
+
+        if (currentMode === 'codes') {
+            hintKey = 'name';
+            activeFields = ['iata', 'icao'];
+        } else if (currentMode === 'city') {
+            // Randomly show IATA or ICAO as hint
+            hintKey = Math.random() > 0.5 ? 'iata' : 'icao';
+            activeFields = ['city'];
+        } else {
+            // Classic: Pick one random attribute as hint, rest are inputs
+            // We use Math.random() in loadQuestion ensures RANDOMNESS every specific question
+            const allKeys = ['name', 'city', 'iata', 'icao'];
+            hintKey = allKeys[Math.floor(Math.random() * allKeys.length)];
+            activeFields = allKeys.filter(k => k !== hintKey);
+        }
+
+        // Render Hint
+        let displayHint = currentAirport[hintKey];
+        if(hintKey === 'iata') displayHint += " (IATA Code)";
+        if(hintKey === 'icao') displayHint += " (ICAO Code)";
+        if(hintKey === 'city') displayHint += " (City)";
+        if(hintKey === 'name') displayHint += " (Airport Name)";
+        
+        hintArea.innerHTML = `
+            <div class="hint-label">Given Information:</div>
+            <div class="hint-text">${displayHint}</div>
+        `;
+
+        // Render Inputs
+        activeFields.forEach(field => {
+            let label = field.toUpperCase();
+            if(field === 'name') label = "Airport Name";
+            if(field === 'city') label = "City";
+            if(field === 'iata') label = "IATA Code (3 letters)";
+            if(field === 'icao') label = "ICAO Code (4 letters)";
+            
+            inputArea.innerHTML += `
+                <div class="input-row">
+                    <label>${label}</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="input-${field}" autocomplete="off" placeholder="Type answer...">
+                        <div class="feedback-msg" id="msg-${field}"></div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        // Focus first input
+        setTimeout(() => {
+            const firstInput = document.querySelector('input');
+            if(firstInput) firstInput.focus();
+        }, 100);
+    }
+
+    function checkAnswer() {
+        let allCorrect = true;
+
+        activeFields.forEach(field => {
+            const inputEl = document.getElementById(`input-${field}`);
+            const msgEl = document.getElementById(`msg-${field}`);
+            const userVal = inputEl.value.trim().toLowerCase();
+            const correctVal = currentAirport[field].toLowerCase();
+
+            // Logic to allow partial match for long airport names, but exact for codes
+            let isFieldCorrect = false;
+            
+            // Normalize strings for comparison (remove accents if strictly needed, but here simple lowercase)
+            // Advanced normalization:
+            const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+            if (field === 'name') {
+                // If user types "Hartsfield" or "Barajas", accept it if it's significant length
+                // Using normalized comparison to handle accents better
+                const normUser = normalize(userVal);
+                const normCorrect = normalize(correctVal);
+                
+                isFieldCorrect = (normCorrect.includes(normUser) && userVal.length > 3) || normCorrect === normUser;
+            } else {
+                isFieldCorrect = normalize(userVal) === normalize(correctVal);
+            }
+
+            // UI Feedback
+            inputEl.classList.remove('correct', 'incorrect');
+            if (isFieldCorrect) {
+                inputEl.classList.add('correct');
+                msgEl.innerText = "Correct!";
+            } else {
+                inputEl.classList.add('incorrect');
+                msgEl.innerText = `Wrong! Answer: ${currentAirport[field]}`;
+                allCorrect = false;
+            }
+        });
+
+        if (allCorrect) score++;
+
+        const btn = document.getElementById('main-btn');
+        btn.innerText = "Next Airport ->";
+        btn.onclick = () => {
+            currentIndex++;
+            loadQuestion();
+        };
+    }
+
+    function endGame() {
+        document.getElementById('game-screen').classList.add('hidden');
+        document.getElementById('summary-screen').classList.remove('hidden');
+        document.getElementById('final-score').innerText = `Score: ${score} / ${gameQueue.length}`;
+        
+        let msg = "";
+        if(score === gameQueue.length) msg = "Perfect Score! You are an ATC master! 🏆";
+        else if (score > (gameQueue.length * 0.75)) msg = "Great job! Almost there.";
+        else msg = "Keep practicing!";
+        
+        document.getElementById('results-list').innerHTML = `<p style="text-align:center">${msg}</p>`;
+    }
+
+</script>
+
+</body>
+</html>
